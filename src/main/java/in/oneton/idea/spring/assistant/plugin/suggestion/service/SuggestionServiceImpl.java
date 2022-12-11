@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.Future;
 
 import static com.intellij.openapi.application.ApplicationManager.getApplication;
 import static in.oneton.idea.spring.assistant.plugin.misc.GenericUtil.modifiableList;
@@ -70,7 +69,6 @@ public class SuggestionServiceImpl implements SuggestionService {
    * Within the trie, all keys are stored in sanitised format to enable us find keys without worrying about hyphens, underscores, e.t.c in the keys themselves
    */
   private final Trie<String, MetadataSuggestionNode> rootSearchIndex;
-  private Future<?> indexExecution;
   private boolean indexAvailable = false;
 
 
@@ -253,25 +251,24 @@ public class SuggestionServiceImpl implements SuggestionService {
 
   @Override
   public void reindex() {
-    if (indexExecution != null && !indexExecution.isDone()) {
-      indexExecution.cancel(false);
-    }
-    indexExecution = getApplication().executeOnPooledThread(() ->
+    getApplication().executeOnPooledThread(() ->
         DumbService.getInstance(module.getProject()).runReadActionInSmartMode(() -> {
-          debug(() -> log.debug("--> Indexing requested for module " + module.getName()));
-          StopWatch moduleTimer = new StopWatch();
-          moduleTimer.start();
-          try {
-            indexAvailable = false;
-            OrderEnumerator moduleOrderEnumerator = OrderEnumerator.orderEntries(module);
-            List<MetadataContainerInfo> newModuleContainersToProcess = computeNewContainersToProcess(
-                moduleOrderEnumerator);
-            List<MetadataContainerInfo> moduleContainersToRemove = computeContainersToRemove(moduleOrderEnumerator);
-            processContainers(newModuleContainersToProcess, moduleContainersToRemove);
-            indexAvailable = true;
-          } finally {
-            moduleTimer.stop();
-            debug(() -> log.debug("<-- Indexing took " + moduleTimer + " for module " + module.getName()));
+          synchronized (SuggestionServiceImpl.this) {
+            debug(() -> log.debug("--> Indexing requested for module " + module.getName()));
+            StopWatch moduleTimer = new StopWatch();
+            moduleTimer.start();
+            try {
+              indexAvailable = false;
+              OrderEnumerator moduleOrderEnumerator = OrderEnumerator.orderEntries(module);
+              List<MetadataContainerInfo> newModuleContainersToProcess = computeNewContainersToProcess(
+                  moduleOrderEnumerator);
+              List<MetadataContainerInfo> moduleContainersToRemove = computeContainersToRemove(moduleOrderEnumerator);
+              processContainers(newModuleContainersToProcess, moduleContainersToRemove);
+              indexAvailable = true;
+            } finally {
+              moduleTimer.stop();
+              debug(() -> log.debug("<-- Indexing took " + moduleTimer + " for module " + module.getName()));
+            }
           }
         }));
   }
