@@ -1,16 +1,17 @@
 package dev.flikas.spring.boot.assistant.idea.plugin.documentation;
 
-import com.intellij.lang.documentation.AbstractDocumentationProvider;
 import com.intellij.openapi.module.Module;
+import com.intellij.platform.backend.documentation.DocumentationTarget;
+import com.intellij.platform.backend.documentation.PsiDocumentationTargetProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import dev.flikas.spring.boot.assistant.idea.plugin.completion.SourceContainer;
-import dev.flikas.spring.boot.assistant.idea.plugin.documentation.service.DocumentationService;
 import dev.flikas.spring.boot.assistant.idea.plugin.filetype.SpringBootConfigurationYamlFileType;
+import dev.flikas.spring.boot.assistant.idea.plugin.metadata.index.MetadataGroup;
 import dev.flikas.spring.boot.assistant.idea.plugin.metadata.index.MetadataItem;
+import dev.flikas.spring.boot.assistant.idea.plugin.metadata.index.MetadataProperty;
 import dev.flikas.spring.boot.assistant.idea.plugin.metadata.service.ModuleMetadataService;
 import dev.flikas.spring.boot.assistant.idea.plugin.misc.PsiElementUtils;
-import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.yaml.YAMLUtil;
@@ -18,13 +19,13 @@ import org.jetbrains.yaml.psi.YAMLKeyValue;
 
 import static com.intellij.openapi.module.ModuleUtilCore.findModuleForPsiElement;
 
-public class YamlDocumentationProvider extends AbstractDocumentationProvider {
-  @Nullable
-  @Nls
+public class YamlDocumentationTargetProvider implements PsiDocumentationTargetProvider {
   @Override
-  public String generateDoc(PsiElement element, @Nullable PsiElement originalElement) {
+  public @Nullable DocumentationTarget documentationTarget(
+      @NotNull PsiElement element, @Nullable PsiElement originalElement
+  ) {
     if (element instanceof SourceContainer ce) {
-      return generateDocumentHtml(ce);
+      return getDocumentationTarget(ce);
     }
 
     if (originalElement != null) element = originalElement;
@@ -45,14 +46,25 @@ public class YamlDocumentationProvider extends AbstractDocumentationProvider {
     @Nullable MetadataItem propertyOrGroup = service.getIndex().getPropertyOrGroup(propertyName);
     if (propertyOrGroup == null) return null;
 
-    return DocumentationService.getInstance(module.getProject()).generateDoc(propertyOrGroup);
+    return getDocumentationTarget(propertyOrGroup);
   }
 
 
   @NotNull
-  private String generateDocumentHtml(SourceContainer sc) {
-    DocumentationService docSvc = DocumentationService.getInstance(sc.getProject());
-    return sc.getSourceMetadataItem().map(docSvc::generateDoc).orElseGet(() ->
-        sc.getSourceHint().map(docSvc::generateDoc).orElseThrow());
+  private DocumentationTarget getDocumentationTarget(SourceContainer sc) {
+    return sc.getSourceMetadataItem().map(this::getDocumentationTarget).orElseGet(() ->
+        sc.getSourceHint().map(h -> new HintDocumentationTarget(h, sc.getProject()))
+            .orElseThrow());
+  }
+
+
+  @NotNull
+  private DocumentationTarget getDocumentationTarget(MetadataItem propertyOrGroup) {
+    if (propertyOrGroup instanceof MetadataProperty property) {
+      return new PropertyDocumentationTarget(property);
+    } else if (propertyOrGroup instanceof MetadataGroup group) {
+      return new GroupDocumentationTarget(group);
+    }
+    throw new IllegalStateException("Unsupported type: " + propertyOrGroup.getClass());
   }
 }
