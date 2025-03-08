@@ -2,9 +2,11 @@
 > # ARCHIVED
 > This repository is ARCHIVED, the subsequent development will move to this repository: [idea-spring-boot-assistant](https://github.com/flikas/idea-spring-boot-assistant).
 > 
-> Because the [upstream](https://github.com/1tontech/intellij-spring-assistant) is inactive from year 2018, and current code is much different from the upstream, we decided [leave the fork network](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/detaching-a-fork#manually-leaving-the-fork-network) by creating a new repository.
+> Because the [upstream](https://github.com/1tontech/intellij-spring-assistant) is inactive from year 2018, and current code is too different from the upstream, we decided [leave the fork network](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/detaching-a-fork#manually-leaving-the-fork-network) by creating a new repository.
 >
-> The Issues here will still be addressed.
+> Thanks again to the groundbreaking work by [@1tontech](https://twitter.com/1tontech).
+>
+> The Issues here will still be addressed, but it is more welcome to create an issue in the [new repository](https://github.com/flikas/idea-spring-boot-assistant/issues).
 
 Spring Boot Assistant - IntelliJ-based plugin that assists you in developing spring boot applications
 =====================================================================================
